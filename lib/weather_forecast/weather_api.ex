@@ -10,7 +10,7 @@ defmodule WeatherForecast.WeatherApi do
     api_key = System.get_env("WEATHER_API_KEY")
     middleware = [
       {Tesla.Middleware.Query, [key: api_key]},
-      Tesla.Middleware.Logger  # Add this to see detailed logs of the requests
+      Tesla.Middleware.Logger
     ]
     Tesla.client(middleware)
   end
