@@ -1,0 +1,9 @@
+<div class="max-w-md mx-auto mt-10">
+  <h1 class="text-2xl font-bold mb-4">Weather Forecast</h1>
+  <.form :let={f} for={%{}} action={~p"/forecast"} method="get">
+    <div class="mb-4">
+      <.input field={f[:city]} type="text" placeholder="Enter city name" required={true} />
+    </div>
+    <.button class="w-full">Get Forecast</.button>
+  </.form>
+</div>

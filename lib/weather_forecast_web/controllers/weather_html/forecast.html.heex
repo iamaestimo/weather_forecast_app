@@ -1,0 +1,16 @@
+<div class="max-w-2xl mx-auto mt-10">
+  <h1 class="text-2xl font-bold mb-4">3-Day Forecast for <%= @city %></h1>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <%= for day <- @forecast do %>
+      <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="text-xl font-semibold mb-2"><%= day.date %></h2>
+        <p class="mb-1">Max: <%= day.max_temp %>°C</p>
+        <p class="mb-1">Min: <%= day.min_temp %>°C</p>
+        <p><%= day.condition %></p>
+      </div>
+    <% end %>
+  </div>
+  <div class="mt-4">
+    <.link href={~p"/"} class="text-blue-500 hover:underline">Back to search</.link>
+  </div>
+</div>
