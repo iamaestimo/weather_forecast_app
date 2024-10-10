@@ -62,6 +62,9 @@ config :weather_forecast, WeatherForecastWeb.Endpoint,
     ]
   ]
 
+# Configure Hackney
+config :tesla, adapter: Tesla.Adapter.Hackney
+
 # Enable dev routes for dashboard and mailbox
 config :weather_forecast, dev_routes: true
 
