@@ -33,39 +33,82 @@ defmodule WeatherForecast.WeatherApi do
     Appsignal.instrument("Weather API - Get Forecast", fn span ->
       Appsignal.Span.set_sample_data(span, "params", %{city: city})
 
-      client()
-      |> get("/forecast.json", query: [q: city, days: 3])
-      |> case do
+      {response, stacktrace} =
+        try do
+          response = client()
+                    |> get("/forecast.json", query: [q: city, days: 3])
+          {response, nil}
+        rescue
+          err ->
+            stacktrace = __STACKTRACE__
+            error_message = "API request failed: #{inspect(err)}"
+            Appsignal.send_error(
+              err,
+              stacktrace,
+              fn error_span ->
+                Appsignal.Span.set_sample_data(error_span, "error", %{
+                  reason: inspect(err),
+                  city: city,
+                  stacktrace: inspect(stacktrace)
+                })
+              end
+            )
+            {{:error, error_message}, stacktrace}
+        end
+
+      case response do
         {:ok, %{status: 200, body: body}} ->
           {:ok, parse_forecast(body)}
+
         {:ok, %{status: status, body: body}} ->
           error_message = "API request failed with status #{status}"
-          stacktrace = get_application_stacktrace()
-          Appsignal.send_error(%RuntimeError{message: error_message},
-                               stacktrace,
-                               fn error_span ->
-                                 Appsignal.Span.set_sample_data(error_span, "error", %{
-                                   status: status,
-                                   body: body,
-                                   city: city
-                                 })
-                               end)
+          Appsignal.send_error(
+            %RuntimeError{message: error_message},
+            stacktrace || [],
+            fn error_span ->
+              Appsignal.Span.set_sample_data(error_span, "error", %{
+                status: status,
+                body: body,
+                city: city,
+                stacktrace: inspect(stacktrace)
+              })
+            end
+          )
           {:error, error_message}
+
         {:error, %Tesla.Error{reason: reason} = error} ->
           error_message = "API request failed: #{inspect(reason)}"
-          stacktrace = get_application_stacktrace()
-          Appsignal.send_error(error,
-                               stacktrace,
-                               fn error_span ->
-                                 Appsignal.Span.set_sample_data(error_span, "error", %{
-                                   reason: reason,
-                                   city: city
-                                 })
-                               end)
+          Appsignal.send_error(
+            error,
+            stacktrace || [],
+            fn error_span ->
+              Appsignal.Span.set_sample_data(error_span, "error", %{
+                reason: inspect(reason),
+                city: city,
+                stacktrace: inspect(stacktrace)
+              })
+            end
+          )
+          {:error, error_message}
+
+        {:error, error} ->
+          error_message = "API request failed: #{inspect(error)}"
+          Appsignal.send_error(
+            %RuntimeError{message: error_message},
+            stacktrace || [],
+            fn error_span ->
+              Appsignal.Span.set_sample_data(error_span, "error", %{
+                error: inspect(error),
+                city: city,
+                stacktrace: inspect(stacktrace)
+              })
+            end
+          )
           {:error, error_message}
       end
     end)
   end
+
 
   defp parse_forecast(body) do
     body["forecast"]["forecastday"]
@@ -80,11 +123,11 @@ defmodule WeatherForecast.WeatherApi do
   end
 
 
-  defp get_application_stacktrace do
-    {_, full_stacktrace} = Process.info(self(), :current_stacktrace)
-    Enum.filter(full_stacktrace, fn {module, _function, _arity, _location} ->
-      to_string(module) =~ "WeatherForecast"
-    end)
-  end
+  # defp get_application_stacktrace do
+  #   {_, full_stacktrace} = Process.info(self(), :current_stacktrace)
+  #   Enum.filter(full_stacktrace, fn {module, _function, _arity, _location} ->
+  #     to_string(module) =~ "WeatherForecast"
+  #   end)
+  # end
 
 end
